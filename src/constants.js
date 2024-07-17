@@ -1,0 +1,1 @@
+export const DB_NAME = "videotube"  // hamari application ke Database ka naam hai bss or kuch nhi
