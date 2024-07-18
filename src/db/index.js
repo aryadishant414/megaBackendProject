@@ -8,7 +8,17 @@ import { DB_NAME } from '../constants.js';
 const connectDB = async () => {
     try {
         const connectionInstance = await mongoose.connect(`${process.env.MONGODB_URI}/${DB_NAME}`)
-        console.log(`\n MongoDb connected !! DB HOST: ${connectionInstance.connection.host}`);
+        console.log(`\n Successfully MongoDb connected !! At DB HOST: ${connectionInstance.connection.host}`);
+
+        // ye niche commented wala code islie likha hai kyoki bss hamm dekh rhe the ki iss 'connectionInstance` ke andar kya pada hai
+        // console.log(`\nMongoDB connected!!`);
+        // console.log('Connection details:', {
+        //     host: connectionInstance.connection.host,
+        //     port: connectionInstance.connection.port,
+        //     name: connectionInstance.connection.name,
+        // });
+
+
     } catch (error) {
         console.log("MONGODB connection FAILED" , error);
         process.exit(1)  // iss baar throw ki jagah exit krwaya hai
