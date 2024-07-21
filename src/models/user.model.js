@@ -57,14 +57,14 @@ const userSchema = new Schema({
 // Iss niche wale sai hamara password encrypt hogya hai
 userSchema.pre("save" , async function (next) {
 
-    if(!this.isModified("password")) return next();
+    if(!this.isModified("password")) return next(); // iss condition sai hamara password baar baar encrypt nhi hoga mtlb ki agr password update wagar hua hai too hee password ki hashing krwaenge else sidha next par return krwa denge
 
      this.password = await bcrypt.hash(this.password , 10)
     next()
 })
 
 
-// Niche wala true/false bhejege ki jo user ne password dala hai wo and database mai jo password pada hai wo equal hai ya nhi
+// Niche wala method true/false bhejege ki jo user ne password dala hai wo and database mai jo password pada hai wo equal hai ya nhi
 userSchema.methods.isPasswordCorrect = async function(password){
    return await bcrypt.compare(password , this.password)
 }
