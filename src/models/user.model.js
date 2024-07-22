@@ -1,4 +1,4 @@
-import mongoose , {Schema} from 'mongoose'
+import mongoose , {Schema} from 'mongoose';
 
 import jwt from 'jsonwebtoken'
 
@@ -71,7 +71,7 @@ userSchema.methods.isPasswordCorrect = async function(password){
 
 
 // Access Token Generate krr rha hai ye niche wala
-userSchema.methods.generateAccessToken = function(password){
+userSchema.methods.generateAccessToken = function(){
     return jwt.sign(
         {
             _id: this._id,
@@ -88,7 +88,7 @@ userSchema.methods.generateAccessToken = function(password){
 
 
  // Refresh Token Generate krr rha hai ye niche wala
- userSchema.methods.generateRefreshToken = function(password){
+ userSchema.methods.generateRefreshToken = function(){
     return jwt.sign(
         {
             _id: this._id,
