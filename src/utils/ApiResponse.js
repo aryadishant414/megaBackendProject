@@ -1,3 +1,5 @@
+// thi =s file is cerated to send the reponses
+
 class ApiResponse {
     constructor(statusCode , data , message = "Success")
     {
@@ -7,3 +9,5 @@ class ApiResponse {
         this.success = statusCode < 400  // TO understand this line Read About `Server status code` on google. bss thik thaak overview pata hona chhaiye not in deep.
     }
 }
+
+export {ApiResponse}

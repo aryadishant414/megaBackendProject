@@ -1,3 +1,5 @@
+// This file is create because Agr koi bhi error aa jaae too ye file ka hamm use krenge. iss file ko bss uss file mai import krwana hai and then simple call this file method from that file jisme bhi hamm error check krr rhe hai
+
 class ApiError extends Error {
     constructor(
         statusCode,
