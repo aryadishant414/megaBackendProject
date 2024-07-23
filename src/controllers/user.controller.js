@@ -4,6 +4,29 @@ import {User} from "../models/user.model.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 
+
+// method for generating 'Access and Refresh Tokens'. 
+// ISME 'asyncHandler' (Higher Order function ki need nhi hai kyoki ye function 'web' sai kuch bhi request nhi kar rha hai ye bss apne hee anadar jo method bana hu hai usko call krr rha hai. TOO OBVIOUS HAI USKE ANDAR HAME 'asynHandler`('TRY-CATCH' ko repeat mai likhne ki problem ko solve krta hai) method ki jrurat nhi hai)
+const generateAccessAndRefreshTokens = async(userId) => {
+    try {
+        const user = await User.findById(userId) // find user in database
+        const accessToken = user.generateAccessToken()
+        const refreshToken = user.generateRefreshToken()
+        
+        user.refreshToken = refreshToken // database ke andar jo 'user object' hai uske andar refresh token daaldiya IN SHORT DATABASE KE ANDAR HEE DAALA HAI KYOKI YE 'user' OBJECT HAI TOO DATABASE KA HEE INSTANCE/OBJECT
+        await user.save( {validateBeforeSave : false} ) // yaha database ke andar save hua hai. line line means ki muje pata hai mai kya karr rha hu tum bss isko database ke andar save krwado validation krne ki koi jrurat nhi hai.
+
+        return {accessToken, refreshToken}
+       
+        
+    } catch (error) {
+        throw new ApiError(500, "Something went wrong while generating refresh and access token")
+    }
+}
+
+
+
+
 const registerUser = asyncHandler( async (req , res) => {
 
     // Steps
@@ -103,6 +126,111 @@ const registerUser = asyncHandler( async (req , res) => {
 
 })
 
+const loginUser = asyncHandler( async (req, res) => {
+    // Steps
+    // get user details from frontend -> req.body
+    // validation -> username or email check
+    // find the user
+    // password check -> password send by user and password stored in mongodb should be same
+    // access and refresh token -> (ye baar baar use honge isliye iska ekk alg sai method hee bana dete hai ham)
+    // send cookie -> jo bhi hamne kaam kiya hai usko cookies mai bhejdo
 
-export {registerUser}
+
+
+    const {email, username, password} = req.body
+
+    if (!username || !email) { // user ko inn dono mai sai ekk field too send krni hee pdegi for login 
+        throw new ApiError(400, "username or email is required")
+    }
+
+    const user = await User.findOne({  // here finding user exist or not
+        $or: [{username}, {email}]  // ye MongoDb ki ekk query hai
+    })
+
+    if (!user) {
+        throw new ApiError(404, "User does not exist")
+    }
+
+    // checking password (AT TIMESTAMP : 15:07 VIDEO-16) NOTE : 'user' and 'User' both are different. 'user': jo user details bhej rha hai wo hai And 'User' :  Mongoose model that interacts with our MongoDB database. THORA CONFUSING HAI BUT BOTH ARE DIFFERENT YE BAAT YAAD RKHNA
+    // SO : 
+    // User: Use this to interact with the database (e.g., findOne, create, etc.). Only used in CRUD OPERATIONS
+    // user: Use this instance to call custom methods like isPasswordCorrect.
+    const isPasswordValid = await user.isPasswordCorrect(password)
+
+    if (!isPasswordValid) {
+        throw new ApiError(401, "Invalid user credentials")
+    }
+
+
+    // now generating access and refresh tokens
+    const {accessToken, refreshToken} = await generateAccessAndRefreshTokens(user._id)
+
+    //send cookie
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+
+    const options = {  // jab bhi ham cookie bhejte hai tab bydefault uska nature editable rehta hai mtlb ki koi bhi usko edit wagara krr skta hai tab wo secure nhi rehti hai BUT BY USING THESE BELOW OPTIONS hamari cookies ko frontend par read too krr paaenge but wo edit sirf backend par hee ho skti hai SO THIS IS A SAFE PRACTICE WHILE SENDING THE COOKIES
+        httpOnly: true,
+        secure: true
+    }
+
+
+
+    return res
+    .status(200)
+    .cookie("accessToken", accessToken, options) // user ko cookie send krr rhe hai server sai. user ke browser mai send hoti hai cookies
+    .cookie("refreshToken", refreshToken, options) 
+    .json(
+        new ApiResponse(
+            200,
+            { //json mai data bhej rhe hai mtlb ki user directly use krr skta hai 'access and refresh tokens' immediatelty after login
+                user: loggedInUser, accessToken, refreshToken
+            },
+            "User logged in Successfully"
+        )
+    )
+
+
+    // v.imp NOTE : 
+    // 'cookies' -> stores the information .
+    // jab bhi ham cookies mai koi data bhejte from the server tab cookies mai jo bhi likha hota hai wo sab server send krta hai `user ke browser par`. so next time jab bhi `logged in user` esee hee same koi request kre tab uss `logged in user kaa` browser automatically uss request ko handle krdega and harr baar usko server sai request nhi krni pdegi.
+
+    //When we are sending our data in 'cookies' TAB WE HAVE TO RELY (Bharosa krna) on our browser. WHICH IS A SAFE OPTION
+
+    //When we are sending our data in 'json' TAB HAME uss data ka immediate access too mill jaata hai (jo ki cookies mai bhejne sai nhi milta hai) jisse hamm uss data ko immediately jese hee user login krta hai tab use krr skte hai BUT its not safe. BUT HO SKTA HAI USER KI MAJBOORI HO YAA FIIR USER KA USE CASE HEE KUCH ESA HO SO IT ALL DEPENDS ON KI HAM HAMARA DATA COOKIES KE THROUIGH BHEJNA CHHATE HAI YA FIIR JSON MAI BHEJNA CHHATE HAI YAA FIR SIRF KISI EKK MAI BHEJNA CHHAHTE HAI YAA FIIR DONO MAI HEE BHEJNA CHHATE HAI 
+
+
+
+})
+
+
+const logoutUser = asyncHandler(async(req, res) => {
+    await User.findByIdAndUpdate(
+        req.user._id,  // query to find user
+        { // yaha batate hai ki update krna kya hai
+            $set: {
+                refreshToken : undefined
+            } // '$set' -> MongoDb operator
+        },
+        {
+            new : true
+        }
+    )
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, {}, "User logged Out"))
+})
+
+export {
+    registerUser,
+    loginUser,
+    logoutUser
+}
 

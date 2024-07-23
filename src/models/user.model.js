@@ -64,7 +64,7 @@ userSchema.pre("save" , async function (next) {
 })
 
 
-// Niche wala method true/false bhejege ki jo user ne password dala hai wo and database mai jo password pada hai wo equal hai ya nhi
+// Niche wala method true/false bhejege ki jo user ne password dala hai wo and database mai jo password pada hai wo equal(correct) hai ya nhi
 userSchema.methods.isPasswordCorrect = async function(password){
    return await bcrypt.compare(password , this.password)
 }
