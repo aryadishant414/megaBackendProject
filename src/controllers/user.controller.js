@@ -281,10 +281,133 @@ const refreshAccessToken = asyncHandler( async(req,res) => {
     }
 })
 
+const changeCurrentUserPassword = asyncHandler(async(req,res) => {
+    const {oldPassword, newPassword} = req.body
+
+// agr confirm password bhi user bhej rha hai too
+    // if(!(newPassword === confirmPassword)) {
+    //     throw new ApiError(400, "Wrong confirm and new password")
+    // }  
+
+
+
+    const user = await User.findById(req.user?._id)
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+
+    if (!isPasswordCorrect) {
+        throw new ApiError(400, "Invalid old password")
+    }
+
+    user.password = newPassword
+    await user.save({validateBeforeSave: false})
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password changed successfully"))
+
+})
+
+const getCurrentUser = asyncHandler(async(req,res) => {
+    return res
+    .status(200)
+    .json(200, req.user, "current user fetched successfully")
+})
+
+const updateAccountDetails = asyncHandler(async(req,res) => {
+    const {fullName, email} = req.body
+
+    if(!fullName || !email) {
+        throw new ApiError(400, "All fields are required")
+    }
+
+    const user = User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {   // this set is MongoDb Operator
+                fullName: fullName,  // dono same hee hai islie Agr sirf fulname hee likhenge too bhi chalega
+                email: email  // only email bhi likh skte hai YE HAMNE Javascript mai pdha tha ki agr same names ho too ekk hee baar likh skte hai
+            }
+        },
+        {new: true} // isse update hone ke baad waali information return hoti hai
+    ).select("-password")
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200,user,"Account Details updated successfully"))
+})
+
+const updateUserAvatar = asyncHandler(async(req,res) => {
+    const avatarLocalPath = req.file?.path
+
+    if(!avatarLocalPath) {
+        throw new ApiError(400, "Avatar file is mising")
+    }
+
+    const avatar = await uploadOnCloudinary(avatarLocalPath)
+
+    if (!avatar.url) {
+        throw new ApiError(400, "Error while uploading on avatar")
+    }
+
+    const user = await Url.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: { // $set is MongoDb ka Operator
+                // ye avatar jiski ham value set kar rhe hai wo hamare user model ke 'avatar' wala avatar hai jo ki ekk url accept krta hai from cloudinary. SEE FROM 'user.model.js' file
+                avatar: avatar.url
+            }
+        },
+        {new: true}
+    ).select("-password")  // this line is used to exclude the password from the response that is sent back to the user. SECURITY Purpose ke liye krte hai ham esaa
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200,user,"Avatar Image Updated Successfully")
+    )
+})
+
+const updateUserCoverImage = asyncHandler(async(req,res) => {
+    const coverImageLocalPath = req.file?.path
+
+    if(!coverImageLocalPath) {
+        throw new ApiError(400, "Cover image file is mising")
+    }
+
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath)
+
+    if (!coverImage.url) {
+        throw new ApiError(400, "Error while uploading Cover Image on Cloudinary")
+    }
+
+    const user = await Url.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: { // $set is MongoDb ka Operator
+                // ye avatar jiski ham value set kar rhe hai wo hamare user model ke 'avatar' wala avatar hai jo ki ekk url accept krta hai from cloudinary. SEE FROM 'user.model.js' file
+                coverImage: coverImage.url  // ye 'coverImage.url WO URL hai jo ki cloudinary par upload hua hai
+            }
+        },
+        {new: true}
+    ).select("-password")  // this line is used to exclude the password from the response that is sent back to the user. SECURITY Purpose ke liye krte hai ham esaa
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200,user,"Cover Image Updated Successfully")
+    )
+
+})
+
 export {
     registerUser,
     loginUser,
     logoutUser,
-    refreshAccessToken
+    refreshAccessToken,
+    changeCurrentUserPassword,
+    getCurrentUser,
+    updateAccountDetails,
+    updateUserAvatar,
+    updateUserCoverImage
+
 }
 
