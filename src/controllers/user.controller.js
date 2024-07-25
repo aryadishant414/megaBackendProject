@@ -310,7 +310,11 @@ const changeCurrentUserPassword = asyncHandler(async(req,res) => {
 const getCurrentUser = asyncHandler(async(req,res) => {
     return res
     .status(200)
-    .json(200, req.user, "current user fetched successfully")
+    .json(new ApiResponse 
+        (200, 
+        req.user, 
+        "current User fetched successfully"
+    ))
 })
 
 const updateAccountDetails = asyncHandler(async(req,res) => {
@@ -320,7 +324,7 @@ const updateAccountDetails = asyncHandler(async(req,res) => {
         throw new ApiError(400, "All fields are required")
     }
 
-    const user = User.findByIdAndUpdate(
+    const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set: {   // this set is MongoDb Operator
@@ -342,6 +346,8 @@ const updateUserAvatar = asyncHandler(async(req,res) => {
     if(!avatarLocalPath) {
         throw new ApiError(400, "Avatar file is mising")
     }
+
+    // TODO delete Old Image - assignment
 
     const avatar = await uploadOnCloudinary(avatarLocalPath)
 
@@ -398,6 +404,142 @@ const updateUserCoverImage = asyncHandler(async(req,res) => {
 
 })
 
+
+// Subscription wala logic 
+const getUserChannelProfile = asyncHandler(async(req,res) => {
+    const {username} = req.params
+
+    if (!username?.trim()) {
+        throw new ApiError(400, "username is missing")
+    }
+
+    const channel = await User.aggregate([
+        {  // 1st pipeline
+            $match: {  // `$match` operator of MongoDb Work : $match says ki Kya database ke andar ye user Hai bhi ya nhi Jiss bhi user ke account par maine visit kiya hai (mtlb ki frontend mai) suppose hamne visit kiya CHANNEL : "chaiaurcode" `youtube` par. NOW AGR USERNAME mill gaya hai too username ke andar ye usrname ki value(jo ki obvious hai text value hogi wo daaldi hai IN SHORT YE USER kI ABB HAMM POORI Kundali dekhenge) next abb ham next hamara kaam krenge jese kitne subscribers hai nd all Isse aage waali pipeline mai.
+                username: username?.toLowerCase()
+            }
+        },
+        {  // 2nd pipeline (isme hamne saare Subscribers find krliye hai)
+            $lookup: {  // lookup too 'Array' of objects return krta hai by default.
+                from: "subscriptions",  // this line means ki iss model mai sai dekho. Ye vhi `export` wala name hai jo ki 'subscription' wale model mai hamne export krte time likha tha ki database mai kya name sai save krwana hai or saath me ye IMPORTANT CHIJ bhi dekhi thi ki database mai ye JAB SAVE hoga tab lowercase mai hoga and plural ho jaaega naam
+                localField: "_id", // mtlb ki hamare model mai iska local name kya hai jisko bhi hamne `foreign-field` waali field mai value diya hai uska
+                foreignField: "channel",
+                as:"subscribers" // ye returned name hai jo bhi hamm dena chahe
+            } // So iss lookup sai hame targeted channel ke saare subscribers mill haye honge
+        },
+        {   // 3rd pipeline (Maine kitne Channels ko Subscribe kiya hai Ye find krr rhe hai isme ham)
+            $lookup: { 
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as:"subscribedTo"
+            }
+
+        },
+        {   // 4th pipeline (Jo jo fields/information uss `targeted user ke document mai padi hai` wo too hai hee uske alawa kuch fields hamm hamari taraf sai add krr rhe hai)
+            $addFields: {  // 'addFields' wo value return krta hai jo uske fields ke andar calculate krr rhe hote hai ham. Suppose in this case hamm subscribers ka count nikal rhe hai too IT WILL RETURN Numeric value
+                subscribersCount: { // iske andar hamne calculation ka logic likha hai
+                    $size: "$subscribers"  // '$' isliye lagaya hai kyoki "subscribers abb ekk field hai" (jo ki 2nd pipeline mai loopkup ne return kri thi. BY Default Returned as "Array")
+                },
+                channelsSubscribedToCount: {
+                    $size: "$subscribedTo"
+                },
+                isSubscribed: {  // jo user mere account par aaya hai kya usne muje subscribe kiya hai ya nhi
+                   $cond: {
+                    if: {$in: [req.user?._id, "$subscribers.subscriber"]},
+                    then: true,
+                    else: false
+                   }
+                }
+
+            }
+        },
+        { //5th pipeline (ISS pipeline mai ham 'project' operator ka use krr rhe hai ki ham saari fileds return nhi krenge uss user ki Jo ham provide karwa rhe hai vhi return krenge)
+            $project: {
+                fullName: 1, // flag on krdiya
+                username: 1,
+                subscribersCount: 1,
+                channelsSubscribedToCount: 1,
+                isSubscribed: 1,
+                avatar: 1,
+                coverImage: 1,
+                email: 1
+            }
+        }
+    ])
+    // console.log(channel) // just to check the return type. Ki Aggregation pipelime hame `return` kya kar rha hai. DOCUMETATION MAI BHI READ KRNE AND DEKHNA. NOTE : jitne bhi Aggregation Pipelines hai mostly Array hee return krte hai. AND HAA Hamara iss "Subscription" wale case mai jo Array return hoke aaya hai usme sai `1st value`(Pehli value) hee Usefull hai.
+
+    if (!channel?.length) {
+        throw new ApiError(404, "channel does not exists")
+    }
+
+    return res 
+    .status(200)
+    .json(
+        new ApiResponse(200, channel[0], "User channel fetched successfully")
+    )
+
+})
+
+// Watch history wala logic
+const getWatchHistory = asyncHandler(async(req,res) => {
+    const user = await User.aggregate([
+        { // 1st pipeline (aggregation pipeline) -> isse hame user mill gaya hai jiski watch history nikalni hai
+            $match: {
+                _id: new mongoose.Types.ObjectId(req.user._id)  // yaha hamne mongoose ki object id banayi hai
+            }
+        },
+        { // 2nd pipeline (jo user mila hai uski watch history ke andar chalte hai).
+            $lookup: { //isme 'users' model ke andar hai ham
+                from: "videos", // ye name wo name hai jo ki hamare database ke andar saved hai 'video' model ka jo ki hamne export krte time ""(double-quotes) mai bataya tha.
+                localField:"watchHistory",  // ye user model ke andar ka local field hai
+                foreignField:"_id",  // we know ki id too harr kisiki automatic bana deta hai database
+                as: "watchHistory",
+                pipeline: [ // sub-pipeline banayi hai kyoki isse uppr wale step tak kya hua tha ki hamari watchHistory wali field jo ki lookup ke through `hamare user` ki fields mai add hue hai uske andar abhi videos aagyi hai jo-jo user ne dekhi thi. But jo videos user ne dekhi hai uska owner kon hai uske baare mai koi bhi information nhi aayi hai abhi tak. Jese hamari youtube history mai jo bhi video hamne dekha hai uss video ka photo, user kon hai, channel name wagara information aati hai na BSS VAHI INFORMATION add krne ke liye hamm issliye hamne ye sub-pipeline likhi hai
+                    { // iss pipeline mai, iss step mai abb ham khade hai 'videos' ke andar jo watch history mai aaye hai
+                        $lookup: { // isme 'videos' model ke andar hai ham
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",  // ye name ham hamari mrzi sai de skte hai 
+                            pipeline: [ // Sub-pipeline. Inn sub-pipelines ko ham yeh bhi keh skte hai ki pipelines ki nesting ho rhi hai
+                                {
+                                    $project: { // isme 'users' model ke andar hai ham and uski kya kya information return krwani hai uska logic likh rhe hai ham
+                                        fullName: 1,
+                                        username: 1,
+                                        avatar: 1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+
+                    // ye niche waali pipeline is options. ISKO Bss frontend wale ke liye aasani ho jaae islie likh rhe hai ham. kyoki uppe wali jo last pipelines hamne likhi thi vha tak aaye hai mtlb ki 'owner' wali field ke andar saara data pada hai Jo ki ekk "Array of objects" return krega yeh hame pata hai. TOo Frontend wale ko baar baar array ke andar jaake uska '0th' element access na krna pade and usko direct hee ye data mill jaae too wo bhi kahega ki backend wala banda acha hai data ache sai bhejta hai hame
+                    { // another pipeline
+                        $addFields: {
+                            owner: { // owner name ki field ko hee overwrite krdiya hai already yeh field padi thi too new field q hee banaye ham. Abb frontend wale ko owner field ke andar sirf yahi dikhega jo ki hamne niche likha hai i.e inside "first wali field"
+                                $first: "$owner" // this line means ki jo array of objects return hua hai uss array mai sai muje first field nikalke dedo
+                            }
+                        }
+                    }
+                ]
+
+            }
+        }
+    ])
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            user[0].watchHistory,
+            "Watch history fetched successfully"
+        
+        )
+    )
+})
+
 export {
     registerUser,
     loginUser,
@@ -407,7 +549,9 @@ export {
     getCurrentUser,
     updateAccountDetails,
     updateUserAvatar,
-    updateUserCoverImage
+    updateUserCoverImage,
+    getUserChannelProfile,
+    getWatchHistory
 
 }
 
