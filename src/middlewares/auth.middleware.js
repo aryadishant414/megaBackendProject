@@ -5,6 +5,7 @@ import { User } from "../models/user.model.js";
 
 
 // isme try-catch block ka use kiya hai kyoki ye ekk Database ka operation hai jisme error ke chances hote hai YE HAMNE STARTING MAI BHI DEKH LIYA HAI KI JAB BHI DATABASE KA KOI KAAM KRE TAB 2 CHIJE HAME PATA HONI CHHAIYE. 1. is Database mai error aa skti hai AND 2 is DATABASE IS IN ANOTHER CONTINENT
+// YEH NICHE PARAMETER MAI '_' (underscore) hai wo response ko hee denote krr rha hai. AGR response mai kuch nhi hai tab ham 'underscore' likhte hai
 export const verifyJWT = asyncHandler(async(req, _ ,next) => {
     try {
         const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ","")
