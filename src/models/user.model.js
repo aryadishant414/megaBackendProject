@@ -33,7 +33,7 @@ const userSchema = new Schema({
         coverImage: {
             type: String,  // cloudinary url
         },
-        watchHistory: [
+        watchHistory: [ // obvious hai 'history' mai multiple videos honge SO it will be `Array of Objects`
             {
                 type: Schema.Types.ObjectId,
                 ref: "Video"
