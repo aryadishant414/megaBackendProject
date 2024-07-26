@@ -9,7 +9,8 @@ import {
     registerUser, 
     updateAccountDetails, 
     updateUserAvatar, 
-    updateUserCoverImage 
+    updateUserCoverImage ,
+    refreshAccessToken
 } from "../controllers/user.controller.js";
 import {upload} from "../middlewares/multer.middleware.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -54,9 +55,9 @@ router.route("/avatar").patch(
 
 
 // TODO 26-07-2024 -> COVER IMAGE KA ROUTE LIKHO  -> DONE 
-router.route("/cover-image").patch(verifyJWT, upload.single("/coverImage"), updateUserCoverImage)
+router.route("/cover-image").patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage)
 
-router.route("/c/:username").get(verifyJWT, getUserChannelProfile)  // isme route "/c/:" esa isliye diya hai kyoki 'getUserChannelProfile' mai ham yeh krr rhe hai -> `const {username} = req.params` . MTLB KI "URL" mai sai kuch le rhe hai. AND JAB BHI URL MAI SAI KUCH LETE HAI ISKE METHOD MAI (in this case talking about `getUserChannelProfile` method) TAB HAME ESA HEE ROUTE LIKHNA HOTA HAI
+router.route("/c/:username").get(verifyJWT, getUserChannelProfile)  // isme route "/c/:" esa isliye diya hai kyoki 'getUserChannelProfile' mai ham yeh krr rhe hai -> `const {username} = req.params` . MTLB KI "URL" mai sai kuch le rhe hai. AND JAB BHI URL MAI SAI KUCH LETE HAI ISKE METHOD MAI (in this case talking about `getUserChannelProfile` method) TAB HAME ESA HEE ROUTE LIKHNA HOTA HAI. ISME 'username' is the NAME OF OUR 'Channel' And ha ':'(colon) nhi likhna pdta hai frontend sai jab ham pass krte hai tab. Badi basic see baat hai ye too
 
 router.route("/history").get(verifyJWT, getWatchHistory)
 

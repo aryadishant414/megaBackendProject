@@ -4,6 +4,7 @@ import {User} from "../models/user.model.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import jwt from "jsonwebtoken"
+import mongoose from "mongoose"
 
 
 // method for generating 'Access and Refresh Tokens'. 
@@ -213,9 +214,13 @@ const logoutUser = asyncHandler(async(req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,  // query to find user
         { // yaha batate hai ki update krna kya hai
-            $set: {
-                refreshToken : undefined
-            } // '$set' -> MongoDb operator
+            
+            // $set: {
+            //     refreshToken : undefined
+            // }, // '$set' -> MongoDb operator
+            $unset: {  // '$set' sai better approach hai ye '$unset'
+                refreshToken: 1 // '1' is flag which means true AND this line Will Removes the field from the document
+            }
         },
         {
             new : true  // This option ensures that the method returns the updated document rather than the original.
@@ -305,7 +310,7 @@ const changeCurrentUserPassword = asyncHandler(async(req,res) => {
     .status(200)
     .json(new ApiResponse(200, {}, "Password changed successfully"))
 
-})
+})  // ISME ek tarah sai 'CRUD' operations hee perform kre hai hamne
 
 const getCurrentUser = asyncHandler(async(req,res) => {
     return res
