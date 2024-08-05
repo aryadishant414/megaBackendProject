@@ -58,6 +58,9 @@ router.route("/avatar").patch(
 router.route("/cover-image").patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage)
 
 router.route("/c/:username").get(verifyJWT, getUserChannelProfile)  // isme route "/c/:" esa isliye diya hai kyoki 'getUserChannelProfile' mai ham yeh krr rhe hai -> `const {username} = req.params` . MTLB KI "URL" mai sai kuch le rhe hai. AND JAB BHI URL MAI SAI KUCH LETE HAI ISKE METHOD MAI (in this case talking about `getUserChannelProfile` method) TAB HAME ESA HEE ROUTE LIKHNA HOTA HAI. ISME 'username' is the NAME OF OUR 'Channel' And ha ':'(colon) nhi likhna pdta hai frontend sai jab ham pass krte hai tab. Badi basic see baat hai ye too
+// THIS ROUTE GIVES US THE DATA JO KI HAME DIKHTA HAI JAB BHI HAMM KISI BHI YOUTUBER KI PROFILE PAR JAATE HAI TAB
+
+
 
 router.route("/history").get(verifyJWT, getWatchHistory)
 

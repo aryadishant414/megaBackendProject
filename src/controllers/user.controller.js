@@ -76,10 +76,13 @@ const registerUser = asyncHandler( async (req , res) => {
     if(existedUser) {
         throw new ApiError(409 , "User with email or username already exists")
     }
-    // console.log("req.files ke anadar hai : ",req.files);  // just for testing purpose
+    console.log("req.files ke anadar hai : ",req.files);  // just for testing purpose
 
 
+   console.log("avatarLocalPath ke just upper khade hai ham");
    const avatarLocalPath = req.files?.avatar[0]?.path;
+   console.log("avatar ka local path hai : ",avatarLocalPath);
+   
     // const coverImageLocalPath = req.files?.coverImage[0]?.path; // isse thora classic way sai ham 'localCover' image ko handle krr rhe hai. iske just niche dekho
 
     let coverImageLocalPath;
@@ -102,6 +105,8 @@ const registerUser = asyncHandler( async (req , res) => {
         throw new ApiError(400 , "Avatar file is required")
     }
 
+    console.log("Cloudinary ke andar Avatar ke andar padaa hai : ", avatar);
+    console.log("Cloudinary ke andar CoverImage ke andar padaa hai : ", coverImage);
 
     const user = await User.create({
         fullName,
@@ -112,10 +117,14 @@ const registerUser = asyncHandler( async (req , res) => {
         username: username.toLowerCase()
     })
 
+    console.log("Database ke andar Stored user ka data hai : ",user);
+    
 
    const createdUser = await User.findById(user._id).select(
     "-password -refreshToken"
    )
+
+   console.log("After removing password and refresh token from Database : ",createdUser)
 
    if(!createdUser) {
     throw new ApiError(500 , "Something went wrong while registering the user")
@@ -211,6 +220,8 @@ const loginUser = asyncHandler( async (req, res) => {
 
 
 const logoutUser = asyncHandler(async(req, res) => {
+    console.log("LOGOUT ke req ke andar hai : ",req);
+    
     await User.findByIdAndUpdate(
         req.user._id,  // query to find user
         { // yaha batate hai ki update krna kya hai
@@ -412,7 +423,13 @@ const updateUserCoverImage = asyncHandler(async(req,res) => {
 
 // Subscription wala logic 
 const getUserChannelProfile = asyncHandler(async(req,res) => {
+
+    console.log("GET USER CHANNEL PROFILE Ke REQ ke anadra pada hai : ",req);
+    
     const {username} = req.params
+
+    console.log("GET USER CHANNEL PROFILE KA ANDAR USERNAME VARIABLE KE ANDAR HAI : ",getUserChannelProfile);
+    
 
     if (!username?.trim()) {
         throw new ApiError(400, "username is missing")
@@ -472,7 +489,7 @@ const getUserChannelProfile = asyncHandler(async(req,res) => {
             }
         }
     ])
-    // console.log(channel) // just to check the return type. Ki Aggregation pipelime hame `return` kya kar rha hai. DOCUMETATION MAI BHI READ KRNE AND DEKHNA. NOTE : jitne bhi Aggregation Pipelines hai mostly Array hee return krte hai. AND HAA Hamara iss "Subscription" wale case mai jo Array return hoke aaya hai usme sai `1st value`(Pehli value) hee Usefull hai.
+    console.log("CHANNEL Ke andar hai : ",channel) // just to check the return type. Ki Aggregation pipelime hame `return` kya kar rha hai. DOCUMETATION MAI BHI READ KRNE AND DEKHNA. NOTE : jitne bhi Aggregation Pipelines hai mostly Array hee return krte hai. AND HAA Hamara iss "Subscription" wale case mai jo Array return hoke aaya hai usme sai `1st value`(Pehli value) hee Usefull hai.
 
     if (!channel?.length) {
         throw new ApiError(404, "channel does not exists")
@@ -519,6 +536,8 @@ const getWatchHistory = asyncHandler(async(req,res) => {
                         }
                     },
 
+                    
+
                     // ye niche waali pipeline is options. ISKO Bss frontend wale ke liye aasani ho jaae islie likh rhe hai ham. kyoki uppe wali jo last pipelines hamne likhi thi vha tak aaye hai mtlb ki 'owner' wali field ke andar saara data pada hai Jo ki ekk "Array of objects" return krega yeh hame pata hai. TOo Frontend wale ko baar baar array ke andar jaake uska '0th' element access na krna pade and usko direct hee ye data mill jaae too wo bhi kahega ki backend wala banda acha hai data ache sai bhejta hai hame
                     { // another pipeline
                         $addFields: {
@@ -532,6 +551,9 @@ const getWatchHistory = asyncHandler(async(req,res) => {
             }
         }
     ])
+
+    console.log("USER KE ANDAR PADA HAI : ", user);
+    
 
     return res
     .status(200)
