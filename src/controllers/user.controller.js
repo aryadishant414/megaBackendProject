@@ -358,7 +358,8 @@ const updateAccountDetails = asyncHandler(async(req,res) => {
 
 const updateUserAvatar = asyncHandler(async(req,res) => {
     const avatarLocalPath = req.file?.path
-
+    console.log("updateAvatar ka local path hai : ",avatarLocalPath);
+    
     if(!avatarLocalPath) {
         throw new ApiError(400, "Avatar file is mising")
     }
@@ -371,7 +372,10 @@ const updateUserAvatar = asyncHandler(async(req,res) => {
         throw new ApiError(400, "Error while uploading on avatar")
     }
 
-    const user = await Url.findByIdAndUpdate(
+    console.log("AVATAAR ke anadar hai : ",avatar);
+    
+
+    const user = await User.findByIdAndUpdate(
         req.user._id,
         {
             $set: { // $set is MongoDb ka Operator
@@ -401,7 +405,7 @@ const updateUserCoverImage = asyncHandler(async(req,res) => {
         throw new ApiError(400, "Error while uploading Cover Image on Cloudinary")
     }
 
-    const user = await Url.findByIdAndUpdate(
+    const user = await User.findByIdAndUpdate(
         req.user._id,
         {
             $set: { // $set is MongoDb ka Operator

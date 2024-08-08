@@ -19,7 +19,7 @@ connectDB()
             throw error
         }) // this code part means ki maanlo database too successfully connect hogya hai but `express` sai jo `app` hamne banayi hai wo hamare database sai baat nhi kar paa rhi hai
 
-        app.listen(process.env.PORT || 8000 , () => {
+        app.listen(process.env.PORT || 4000 , () => {
             console.log(`Server Started here and App Listens on PORT : ${process.env.PORT}`);
         }) // this code part means ki server successfully start hogya hai and database par jo bhi requests aa rhi hai unhe listen krr rha hai
 

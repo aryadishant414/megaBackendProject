@@ -8,7 +8,7 @@ import { User } from "../models/user.model.js";
 // YEH NICHE PARAMETER MAI '_' (underscore) hai wo response ko hee denote krr rha hai. AGR response mai kuch nhi hai tab ham 'underscore' likhte hai
 export const verifyJWT = asyncHandler(async(req, _ ,next) => {
 
-    // console.log("VERIFY JWT ki COOKIES ke andar ki req ke andar hai : ",req.cookies);
+    console.log("VERIFY JWT ki COOKIES ke andar ki req ke andar hai : ",req.cookies);
 
     
     try {
@@ -16,7 +16,7 @@ export const verifyJWT = asyncHandler(async(req, _ ,next) => {
         
         const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ","")
         
-        // console.log("Token ke andar hai : ",token);
+        console.log("Token ke andar hai : ",token);
         
 
         if(!token) {
